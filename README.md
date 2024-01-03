@@ -21,6 +21,34 @@ The dataset is divided into 8:2 training, validation and test sets. The training
 Code to handle dataset references from 
 [https://github.com/WZMIAOMIAO/deep-learning-for-image-processing/blob/master/data_set/split_data.py](https://github.com/WZMIAOMIAO/deep-learning-for-image-processing/blob/master/data_set/split_data.py)
 
+The third-party code snippets used for reference are as follows:
+```
+def main():
+...
+random.seed(0)
+    split_rate = 0.1
+    ...
+        for cla in flower_class:
+        cla_path = os.path.join(origin_flower_path, cla)
+        images = os.listdir(cla_path)
+        num = len(images)
+        eval_index = random.sample(images, k=int(num*split_rate))
+        for index, image in enumerate(images):
+            if image in eval_index:
+                image_path = os.path.join(cla_path, image)
+                new_path = os.path.join(val_root, cla)
+                copy(image_path, new_path)
+            else:
+                image_path = os.path.join(cla_path, image)
+                new_path = os.path.join(train_root, cla)
+                copy(image_path, new_path)
+            print("\r[{}] processing [{}/{}]".format(cla, index+1, num), end="")  # processing bar
+        print()
+
+print("processing done!")
+```
+
+
 ### Dataset preprocessing: 
 PyTorch's ImageFolder class is used to load the image dataset and perform preprocessing operations on the images. The path where the dataset is located is root_dir (flower dataset), and the loaded image has gone through a series of preprocessing operations:
 Resize the image to 224x224 pixels (transforms.Resize((224, 224))).
@@ -28,6 +56,38 @@ Convert the image to a PyTorch tensor (transforms.ToTensor()).
 Normalise the image (normalise using ImageNet's mean and standard deviation) (transforms.Normalize()).
 Data preprocessing code adapted from: 
 [https://github.com/WZMIAOMIAO/deep-learning-for-image-processing/blob/master/pytorch_classification/custom_dataset/main.py](https://github.com/WZMIAOMIAO/deep-learning-for-image-processing/blob/master/pytorch_classification/custom_dataset/main.py)
+
+The third-party code snippets used for reference are as follows:
+```
+def main():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("using {} device.".format(device))
+
+    train_images_path, train_images_label, val_images_path, val_images_label = read_split_data(root)
+
+    data_transform = {
+        "train": transforms.Compose([transforms.RandomResizedCrop(224),
+                                     transforms.RandomHorizontalFlip(),
+                                     transforms.ToTensor(),
+                                     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
+        "val": transforms.Compose([transforms.Resize(256),
+                                   transforms.CenterCrop(224),
+                                   transforms.ToTensor(),
+                                   transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])}
+
+    train_data_set = MyDataSet(images_path=train_images_path,
+                               images_class=train_images_label,
+                               transform=data_transform["train"])
+
+    batch_size = 8
+    nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
+    print('Using {} dataloader workers'.format(nw))
+    train_loader = torch.utils.data.DataLoader(train_data_set,
+                                               batch_size=batch_size,
+                                               shuffle=True,
+                                               num_workers=nw,
+                                               collate_fn=train_data_set.collate_fn)
+```
 
 ![image](https://github.com/Quincy816/Coding3Final2.0/assets/115622644/3e68cb88-e979-47f6-a8cf-1afc89c01e2a)
 
@@ -63,11 +123,63 @@ Evaluating the accuracy and other performance metrics of the model on a test set
 ## 3. Model deployment
 ### Model Save:
 After training, the model is saved as a file for use in the application, and line plots of train_acc, valid_acc, train_loss, valid_loss are generated at the same time.
+
 <img width="640" alt="image" src="https://github.com/Quincy816/Coding3Final2.0/assets/115622644/8ff63a7d-8cea-468a-9113-be660fafb63a">
 
 ### Create a prediction function:
-Write a function (e.g. main1) that takes an input image, preprocesses it, and then uses the trained model to make a prediction that returns the type of flower. Here I have quoted part of the code from github, link: 
+Write a function (e.g. main1) that takes an input image, preprocesses it, and then uses the trained model to make a prediction that returns the type of flower. Here I have quoted part of the code from github, 
+link: 
 [https://github.com/WZMIAOMIAO/deep-learning-for-image-processing/blob/master/pytorch_classification/Test6_mobilenet/predict.py](https://github.com/WZMIAOMIAO/deep-learning-for-image-processing/blob/master/pytorch_classification/Test6_mobilenet/predict.py)
+
+The third-party code snippets used for reference are as follows:
+```
+def main():
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    data_transform = transforms.Compose(
+        [transforms.Resize(256),
+         transforms.CenterCrop(224),
+         transforms.ToTensor(),
+         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+
+    # load image
+    img_path = "../tulip.jpg"
+    assert os.path.exists(img_path), "file: '{}' dose not exist.".format(img_path)
+    img = Image.open(img_path)
+    plt.imshow(img)
+    # [N, C, H, W]
+    img = data_transform(img)
+    # expand batch dimension
+    img = torch.unsqueeze(img, dim=0)
+
+    # read class_indict
+    json_path = './class_indices.json'
+    assert os.path.exists(json_path), "file: '{}' dose not exist.".format(json_path)
+
+    with open(json_path, "r") as f:
+        class_indict = json.load(f)
+
+    # create model
+    model = MobileNetV2(num_classes=5).to(device)
+    # load model weights
+    model_weight_path = "./MobileNetV2.pth"
+    model.load_state_dict(torch.load(model_weight_path, map_location=device))
+    model.eval()
+    with torch.no_grad():
+        # predict class
+        output = torch.squeeze(model(img.to(device))).cpu()
+        predict = torch.softmax(output, dim=0)
+        predict_cla = torch.argmax(predict).numpy()
+
+    print_res = "class: {}   prob: {:.3}".format(class_indict[str(predict_cla)],
+                                                 predict[predict_cla].numpy())
+    plt.title(print_res)
+    for i in range(len(predict)):
+        print("class: {:10}   prob: {:.3}".format(class_indict[str(i)],
+                                                  predict[i].numpy()))
+    plt.show()
+```
+
 <img width="538" alt="image" src="https://github.com/Quincy816/Coding3Final2.0/assets/115622644/fd17bb76-ee2a-4241-afad-f8b6dd8028b4">
 
 (Check "predict.py" for the exact code.)
@@ -78,6 +190,34 @@ Integrate Model: Integrate the previously saved model into the application. When
 Add extra features: extra features such as flower language interpretation.
 Here I referred to multiple online tutorials and ended up with my PyQt5 code thus code: [https://github.com/qq1308636759/VGG16--/blob/main/UI.py](https://github.com/qq1308636759/VGG16--/blob/main/UI.py).
 
+The third-party code snippets used for reference are as follows:
+```
+class Ui_Form(object):
+    def setupUi(self, Form):
+        Form.setObjectName("Form")
+        Form.resize(765, 402)
+        self.centralwidget = QtWidgets.QWidget(Form)
+        self.label = QtWidgets.QLabel(Form)
+        self.label.setGeometry(QtCore.QRect(70, 50, 256, 256))
+        self.label.setObjectName("label")
+        self.pushButton = QtWidgets.QPushButton(Form)
+        self.pushButton.setGeometry(QtCore.QRect(560, 300, 151, 61))
+        self.pushButton.setObjectName("pushButton")
+        self.textBrowser = QtWidgets.QTextBrowser(Form)
+        self.textBrowser.setGeometry(QtCore.QRect(420, 50, 256, 51))
+        self.textBrowser.setStyleSheet("border:0px;\n""")
+        self.textBrowser.setObjectName("textBrowser")
+        self.pushButton_2 = QtWidgets.QPushButton(Form)
+        self.pushButton_2.setGeometry(QtCore.QRect(380, 300, 151, 61))
+        self.pushButton_2.setObjectName("pushButton_2")
+        self.textBrowser_1 = QtWidgets.QTextBrowser(Form)
+        self.textBrowser_1.setGeometry(QtCore.QRect(420, 140, 261, 101))
+        self.textBrowser_1.setObjectName("textBrowser1")
+        self.retranslateUi(Form)
+        QtCore.QMetaObject.connectSlotsByName(Form)
+        self.pushButton.clicked.connect(self.prediction)
+        self.pushButton_2.clicked.connect(self.openimg)
+```
 (see “ui.py” for the exact code)
 
 ## 5. Testing and optimisation
