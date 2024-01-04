@@ -3,6 +3,8 @@ Name: QIAN XU
 
 Student ID: 22018776
 
+Github Link: [https://github.com/Quincy816/Coding3Final2.0/tree/main](https://github.com/Quincy816/Coding3Final2.0/tree/main)
+
 Instructional video link: [https://youtu.be/aRdHm2pkwn8](https://youtu.be/aRdHm2pkwn8)
 
 Third-party code resources Link: [https://github.com/WZMIAOMIAO/deep-learning-for-image-processing/tree/master/pytorch_classification/Test6_mobilenet](https://github.com/WZMIAOMIAO/deep-learning-for-image-processing/tree/master/pytorch_classification/Test6_mobilenet)
