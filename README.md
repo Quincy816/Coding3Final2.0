@@ -3,6 +3,8 @@ Name: QIAN XU
 
 Student ID: 22018776
 
+Instructional video link: [https://youtu.be/aRdHm2pkwn8](https://youtu.be/aRdHm2pkwn8)
+
 Third-party code resources Link: [https://github.com/WZMIAOMIAO/deep-learning-for-image-processing/tree/master/pytorch_classification/Test6_mobilenet](https://github.com/WZMIAOMIAO/deep-learning-for-image-processing/tree/master/pytorch_classification/Test6_mobilenet)
 
 Tutorial Link: [https://www.bilibili.com/video/BV1yE411p7L7/?vd_source=84bad5c2512fc2824e0af4a786add6a8](https://www.bilibili.com/video/BV1yE411p7L7/?vd_source=84bad5c2512fc2824e0af4a786add6a8)
